@@ -4,5 +4,5 @@ Following [Frank Stokes](https://github.com/lowbyteproductions) on [YouTube](htt
 
 ## Changes
 
-1. [Episode one](https://github.com/ekarademir/16-bit-VM-ts/commit/56c5e75c96214258ef57ca24226c324087a2d238). MOV and ADD
-2.
+1. [Episode one](https://github.com/ekarademir/16-bit-VM-ts/commit/56c5e75c96214258ef57ca24226c324087a2d238). Implement MOV and ADD
+2. [Episode two](https://github.com/ekarademir/16-bit-VM-ts/commit/125d61f360c4fb24ba8946d25b75d8aa74d4c1a1). Extend MOV, implement JNE
