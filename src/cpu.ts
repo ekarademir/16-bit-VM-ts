@@ -4,6 +4,7 @@ export class CPU {
   private memory: Memory;
   private registers: Memory;
   private registerNames: Register[];
+  private registerIndices: Map<Register, number>;
   private registerMap: Map<Register, number>;
 
   public constructor(memory: Memory) {
@@ -25,10 +26,24 @@ export class CPU {
     // number of registers x 2.
     this.registers = createMemory(this.registerNames.length * 2);
 
+    this.registerIndices = new Map();
     this.registerMap = this.registerNames.reduce((map, name, i) => {
       map.set(name, i * 2);
+      this.registerIndices.set(name, i);
       return map;
     }, new Map());
+  }
+
+  public get ACCUMULATOR() {
+    return this.registerIndices.get(Register.ACCUMULATOR);
+  }
+
+  public get REGISTER1() {
+    return this.registerIndices.get(Register.REGISTER1);
+  }
+
+  public get REGISTER2() {
+    return this.registerIndices.get(Register.REGISTER2);
   }
 
   public debug() {
@@ -38,6 +53,31 @@ export class CPU {
       );
     });
     console.log();
+  }
+
+  public stepXTimes(x: number) {
+    Array.from({ length: x }).forEach(() => {
+      this.step();
+    });
+  }
+
+  public peekRegister(name: Register) {
+    return this.getRegister(name);
+  }
+
+  public get instructionPointer() {
+    return this.getRegister(Register.INSTRUCTION_POINTER);
+  }
+
+  public viewMemoryAt(address: number) {
+    // 0x0F01: 0x04 0x05 0xA3 0xFE 0x13 0x0D 0x44 0x0F
+    const nextEightBytes = Array.from({ length: 8 }, (_, i) =>
+      this.memory.getByte(address + i)
+    ).map((v) => `0x${v.toString(16).padStart(2, "0")}`);
+
+    return `0x${address.toString(16).padStart(4, "0")}: ${nextEightBytes.join(
+      " "
+    )}`;
   }
 
   private getRegister(name: Register): number {
@@ -52,6 +92,10 @@ export class CPU {
       throw new WrongRegisterError(`Register ${name} does not exist`);
 
     return this.registers.setWord(this.registerMap.get(name), value);
+  }
+
+  private toRegister(addr: number): Register {
+    return this.registerNames[addr % this.registerNames.length];
   }
 
   /**
@@ -82,18 +126,39 @@ export class CPU {
 
   private execute(instruction): void {
     switch (instruction) {
-      // Move literal into the r1 register
-      case Instruction.MOV_LIT_R1:
+      // Move literal into a register
+      case Instruction.MOV_LIT_REG:
         {
           const literal = this.fetch16();
-          this.setRegister(Register.REGISTER1, literal);
+          const register = this.toRegister(this.fetch());
+          this.setRegister(register, literal);
         }
         return;
-      // Move literal into the r2 register
-      case Instruction.MOV_LIT_R2:
+      // Move register into a register
+      case Instruction.MOV_REG_REG:
         {
-          const literal = this.fetch16();
-          this.setRegister(Register.REGISTER2, literal);
+          const registerFrom = this.toRegister(this.fetch());
+          const registerTo = this.toRegister(this.fetch());
+          const value = this.getRegister(registerFrom);
+          this.setRegister(registerTo, value);
+        }
+        return;
+      // Move register into a memory
+      case Instruction.MOV_REG_MEM:
+        {
+          const registerFrom = this.toRegister(this.fetch());
+          const address = this.fetch16();
+          const value = this.getRegister(registerFrom);
+          this.memory.setWord(address, value);
+        }
+        return;
+      // Move memory into a register
+      case Instruction.MOV_MEM_REG:
+        {
+          const address = this.fetch16();
+          const registerTo = this.toRegister(this.fetch());
+          const value = this.memory.getWord(address);
+          this.setRegister(registerTo, value);
         }
         return;
       case Instruction.ADD_REG_REG:
@@ -109,6 +174,18 @@ export class CPU {
             Register.ACCUMULATOR,
             registerValue1 + registerValue2
           );
+        }
+        return;
+      case Instruction.JMP_NOT_EQ:
+        {
+          const value = this.fetch16();
+          const address = this.fetch16();
+
+          const accValue = this.getRegister(Register.ACCUMULATOR);
+
+          if (value !== accValue) {
+            this.setRegister(Register.INSTRUCTION_POINTER, address);
+          }
         }
         return;
     }
@@ -136,7 +213,10 @@ export enum Register {
 }
 
 export enum Instruction {
-  MOV_LIT_R1 = 0x10, // MOV
-  MOV_LIT_R2 = 0x11, // MOV
-  ADD_REG_REG = 0x12, // ADD
+  MOV_LIT_REG = 0x10, // Move literal to register
+  MOV_REG_REG = 0x11, // Move register to register
+  MOV_REG_MEM = 0x12, // Move register to memory
+  MOV_MEM_REG = 0x13, // Move memory to register
+  ADD_REG_REG = 0x14, // Add register to register
+  JMP_NOT_EQ = 0x15, // Jump not equal, if literal is not equal to accumulator value, jump to the address
 }
