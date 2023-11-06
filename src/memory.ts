@@ -1,4 +1,5 @@
 export const createMemory = (sizeInBytes: number): Memory => {
+  // `ArrayBuffer` allocates contiguous buffer with given size
   const buffer = new ArrayBuffer(sizeInBytes);
   const view = new Memory(buffer);
 

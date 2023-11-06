@@ -21,6 +21,8 @@ export class CPU {
       Register.REGISTER8,
     ];
 
+    // Since 16bits is 2 bytes, size of register buffer is
+    // number of registers x 2.
     this.registers = createMemory(this.registerNames.length * 2);
 
     this.registerMap = this.registerNames.reduce((map, name, i) => {
@@ -52,6 +54,10 @@ export class CPU {
     return this.registers.setWord(this.registerMap.get(name), value);
   }
 
+  /**
+   * Read 8 bit data from the "tape"
+   * @returns fetched 8 bit data
+   */
   private fetch(): number {
     const nextInstructionAddress = this.getRegister(
       Register.INSTRUCTION_POINTER
@@ -61,6 +67,10 @@ export class CPU {
     return instruction;
   }
 
+  /**
+   * Read 16 bit data from the "tape"
+   * @returns fetched 16 bit data
+   */
   private fetch16(): number {
     const nextInstructionAddress = this.getRegister(
       Register.INSTRUCTION_POINTER
@@ -88,8 +98,10 @@ export class CPU {
         return;
       case Instruction.ADD_REG_REG:
         {
+          // Indices of registers
           const r1 = this.fetch();
           const r2 = this.fetch();
+          // Index x 2, is the byte offset in register buffer
           const registerValue1 = this.registers.getWord(r1 * 2);
           const registerValue2 = this.registers.getWord(r2 * 2);
 
@@ -111,8 +123,8 @@ export class CPU {
 export class WrongRegisterError extends Error {}
 
 export enum Register {
-  INSTRUCTION_POINTER = "ip",
-  ACCUMULATOR = "acc",
+  INSTRUCTION_POINTER = "ip", // Where in the "tape" are we
+  ACCUMULATOR = "acc", // Bank on which data is piled
   REGISTER1 = "r1",
   REGISTER2 = "r2",
   REGISTER3 = "r3",
