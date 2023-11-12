@@ -26,9 +26,9 @@ let i = 0;
 //  psh 0x0304
 //  psh 0x0506
 //
-// mov 0x0708, r1
-// mov 0x0809, r8
-// ret
+//  mov 0x0708, r1
+//  mov 0x0809, r8
+//  ret
 
 const subRoutineAddress = 0x3000;
 
